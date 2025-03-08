@@ -1,0 +1,23 @@
+
+services:
+  ollama:
+    build:
+      context: ./../../
+      dockerfile: ./containers/ollama/Dockerfile
+    environment:
+      - MODEL=${MODEL:-qwen2.5-coder:7b}
+      - CONTEXT_SIZE=${CONTEXT_SIZE:-8000}
+      - TEMPERATURE=${TEMPERATURE:-0.2}
+      - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - internal-network
+    volumes:
+      - models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

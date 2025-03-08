@@ -1,0 +1,13 @@
+include:
+  - "./containers/ollama/service.yaml"
+  - "./containers/api/service.yaml"
+#  - "./containers/dev/service.yaml"
+
+volumes:
+  models:
+    driver: local
+
+networks:
+  internal-network:
+    external: false
+    name: internal-network
