@@ -6,6 +6,7 @@ services:
     restart: always
     environment:
       - SERPAPI_API_KEY=${SERPAPI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - 8000:8000
     networks:
