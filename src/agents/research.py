@@ -14,16 +14,16 @@ class ResearchAgent:
         self,
         model_url="http://ollama:11434/v1",
         model_name="custom-model",
-        max_queries_per_question=3,
+        max_queries_per_task=3,
         max_questions_per_url=3,
-        max_urls_per_question=20,
+        max_urls_per_task=20,
     ):
         self.generic_system_prompt = (
             f"Today's date is {datetime.datetime.now().strftime('%Y-%m-%d')}. You will use the most up-to-date information possible.",
         )
-        self.max_queries_per_question = max_queries_per_question
+        self.max_queries_per_task = max_queries_per_task
         self.max_questions_per_url = max_questions_per_url
-        self.max_urls_per_question = max_urls_per_question
+        self.max_urls_per_task = max_urls_per_task
         self.ollama_model = OpenAIModel(model_name=model_name, base_url=model_url)
         self.research_agent = Agent(
             self.ollama_model,
@@ -72,11 +72,11 @@ class ResearchAgent:
     def _register_validators(self):
         @self.query_agent.result_validator
         async def validate_queries(result: List[str]) -> List[str]:
-            if len(result) == self.max_queries_per_question:
+            if len(result) == self.max_queries_per_task:
                 return result
             else:
                 raise ModelRetry(
-                    f"You generated {len(result)} queries, you needed to generate {self.max_queries_per_question}, try again"
+                    f"You generated {len(result)} queries, you needed to generate {self.max_queries_per_task}, try again"
                 )
 
         @self.summarize_agent.result_validator
@@ -148,17 +148,22 @@ class ResearchAgent:
         )
         for i, query in enumerate(result.data, 1):
             self.logger.info(f"  Query #{i}: {query}")
+
         queries = result.data
         answers: Dict[str, List[str]] = {}
         urls = []
 
         # Search for URLs
         self.logger.info("\n📊 SEARCHING GOOGLE FOR RELEVANT URLS...")
-        for i, query in enumerate(queries[: self.max_queries_per_question], 1):
+        for i, query in enumerate(queries[: self.max_queries_per_task], 1):
             self.logger.info(f"  Searching query #{i}: {query}")
             search_results = await self.search_google(query)
             self.logger.info(f"    Found {len(search_results)} URLs")
-            urls.extend(search_results)
+            # we divide the resulting urls by max_queries_per_task to ensure we don't exceed the max_urls_per_task
+            # but also get a good mix of URLs from different queries
+            urls.extend(
+                search_results[: self.max_urls_per_task / self.max_queries_per_task]
+            )
 
         urls = list(set(urls))
         self.logger.info(f"\n🌐 TOTAL UNIQUE URLS FOUND: {len(urls)}")
